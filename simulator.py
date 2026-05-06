@@ -69,6 +69,7 @@ class Simulador:
             
         # Configura o gerador de números aleatórios de acordo com o arquivo
         semente_inicial = config.get('seeds', [1])[0]
+        self.semente_inicial = semente_inicial
         limite_rnds = config.get('rndnumbersPerSeed', 100000)
         self.rng = LCG(semente=semente_inicial, limite=limite_rnds)
         
@@ -168,24 +169,46 @@ class Simulador:
         heapq.heappush(self.escalonador, (self.tempo_global + tempo_atend, "SAIDA", fila.nome))
 
     def _imprimir_resultados(self):
-        print(f"\n{'='*65}")
-        print(f" SIMULAÇÃO ENCERRADA ({self.rng.consumidos} Aleatórios Consumidos)")
-        print(f" Tempo Global: {self.tempo_global:.4f} min")
-        print(f"{'='*65}")
+        print(f"...simulating with random numbers (seed '{self.semente_inicial}')...")
+        print("=" * 60)
+        print(f"{'='*21} END OF SIMULATION {'='*20}")
+        print("=" * 60)
+        
+        print(f"\n{'='*60}")
+        print(f"{'='*26} REPORT {'='*26}")
+        print(f"{'='*60}")
 
         for nome, fila in self.filas.items():
-            print(f"\n--- {nome} ---")
-            print(f"Perdas: {fila.clientes_perdidos}")
-            print(f"{'Estado':<10} | {'Tempo Acumulado':<20} | {'Probabilidade':<15}")
-            print("-" * 50)
+            print("*" * 60)
             
+            # 1. Constrói a Notação de Kendall dinâmica
+            if fila.capacity == 999999:
+                kendall = f"G/G/{fila.servers}"
+            else:
+                kendall = f"G/G/{fila.servers}/{fila.capacity}"
+                
+            print(f"Queue:   {nome} ({kendall})")
+            
+            # 2. Imprime Arrival apenas se a fila recebe do exterior
+            if fila.min_arrival is not None and fila.max_arrival is not None:
+                print(f"Arrival: {fila.min_arrival} ... {fila.max_arrival}")
+                
+            # 3. Imprime Service e o cabeçalho da tabela
+            print(f"Service: {fila.min_service} ... {fila.max_service}")
+            print("*" * 60)
+            print(f"  {'State':<18} {'Time':<20} {'Probability'}")
+            
+            # Define o limite máximo para impressão
             max_estado = fila.capacity if fila.capacity != 999999 else max((i for i, t in enumerate(fila.tempos_acumulados) if t > 0), default=0)
             
+            # 4. Imprime as linhas de probabilidade
             for i in range(max_estado + 1):
                 tempo_estado = fila.tempos_acumulados[i]
                 prob = (tempo_estado / self.tempo_global) * 100 if self.tempo_global > 0 else 0.0
-                print(f"{i:<10} | {tempo_estado:<20.4f} | {prob:<14.2f}%")
-        print("\n")
+                
+                print(f"    {i:<16} {tempo_estado:<20.4f} {prob:>7.2f}%")
+                
+            print(f"\nNumber of losses: {fila.clientes_perdidos}\n")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
