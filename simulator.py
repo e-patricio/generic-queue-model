@@ -210,6 +210,10 @@ class Simulador:
                 
             print(f"\nNumber of losses: {fila.clientes_perdidos}\n")
 
+        print("=" * 60)
+        print(f"Simulation Average Time: {self.tempo_global:.4f}")
+        print("=" * 60 + "\n")
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         arquivo_yml = sys.argv[1]
